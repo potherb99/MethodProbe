@@ -244,15 +244,65 @@ java -cp agent.jar com.probe.agent.snapshot.SnapshotReader "./probe-snapshots/**
 
 Agent 启动后会在配置的端口启动 HTTP 服务（默认 9876）：
 
-| 接口             | 方法 | 说明                               |
-| ---------------- | ---- | ---------------------------------- |
-| `/class/add`     | POST | 添加 Flat 监控类 `className=xxx`   |
-| `/package/add`   | POST | 添加 Flat 监控包 `packageName=xxx` |
-| `/threshold/set` | POST | 设置 Flat 阈值 `threshold=xxx`     |
-| `/config`        | GET  | 查看当前配置                       |
+**Flat 模式接口：**
+
+| 接口                   | 方法 | 参数                             | 说明             |
+| ---------------------- | ---- | -------------------------------- | ---------------- |
+| `/flat/class/add`      | POST | `className=xxx`                  | 添加监控类       |
+| `/flat/class/remove`   | POST | `className=xxx`                  | 移除监控类       |
+| `/flat/package/add`    | POST | `packageName=xxx`                | 添加监控包       |
+| `/flat/package/remove` | POST | `packageName=xxx`                | 移除监控包       |
+| `/flat/threshold`      | POST | `threshold=xxx`                  | 设置阈值（毫秒） |
+| `/flat/trigger`        | POST | `trigger=timeout/exception/both` | 设置触发模式     |
+
+**Tree 模式接口：**
+
+| 接口                   | 方法 | 参数                             | 说明             |
+| ---------------------- | ---- | -------------------------------- | ---------------- |
+| `/tree/entry/add`      | POST | `method=xxx`                     | 添加入口方法     |
+| `/tree/entry/remove`   | POST | `method=xxx`                     | 移除入口方法     |
+| `/tree/package/add`    | POST | `packageName=xxx`                | 添加监控包       |
+| `/tree/package/remove` | POST | `packageName=xxx`                | 移除监控包       |
+| `/tree/threshold`      | POST | `threshold=xxx`                  | 设置阈值（毫秒） |
+| `/tree/trigger`        | POST | `trigger=timeout/exception/both` | 设置触发模式     |
+
+**异常过滤接口：**
+
+| 接口                        | 方法 | 参数          | 说明               |
+| --------------------------- | ---- | ------------- | ------------------ |
+| `/exception/include/add`    | POST | `pattern=xxx` | 添加包含的异常类型 |
+| `/exception/include/remove` | POST | `pattern=xxx` | 移除包含的异常类型 |
+| `/exception/exclude/add`    | POST | `pattern=xxx` | 添加排除的异常类型 |
+| `/exception/exclude/remove` | POST | `pattern=xxx` | 移除排除的异常类型 |
+| `/exception/depth`          | POST | `depth=xxx`   | 设置堆栈深度       |
+
+**快照接口：**
+
+| 接口               | 方法 | 参数                                    | 说明               |
+| ------------------ | ---- | --------------------------------------- | ------------------ |
+| `/snapshot/config` | POST | `enabled=true/false`, `mode=sync/async` | 配置快照           |
+| `/snapshot`        | GET  | `?id=xxx`                               | 快照详情页面       |
+| `/snapshot/detail` | GET  | `?id=xxx`                               | 获取快照 JSON 数据 |
+
+**通用接口：**
+
+| 接口      | 方法 | 说明                 |
+| --------- | ---- | -------------------- |
+| `/config` | GET  | 查看当前配置（JSON） |
+| `/admin`  | GET  | 管理控制台页面       |
+| `/log`    | GET  | 实时日志页面         |
+| `/`       | GET  | 接口帮助             |
+
+**示例：**
 
 ```bash
-curl -X POST http://localhost:9876/class/add -d "className=com.example.NewClass"
+# 添加 Flat 监控类
+curl -X POST http://localhost:9876/flat/class/add -d "className=com.example.NewClass"
+
+# 添加 Tree 入口方法
+curl -X POST http://localhost:9876/tree/entry/add -d "method=com.example.Controller.handle"
+
+# 查看当前配置
 curl http://localhost:9876/config
 ```
 
