@@ -42,15 +42,6 @@ probe.flat.packages=com.example
 probe.flat.threshold=100
 ```
 
-### 1.4 Demo 测试
-
-```bash
-# 控制台输出
-./run-demo.sh console
-
-# 文件输出
-./run-demo.sh file
-```
 
 ---
 
@@ -239,6 +230,18 @@ java -cp agent.jar com.probe.agent.snapshot.SnapshotReader "./probe-snapshots/**
 | `probe.exclude`   | 空     | 排除的类模式（逗号分隔），如 `*Test,*Mock` |
 
 ---
+
+### 2.8界面动态配置
+启动后输入：http://localhost:9876/admin
+
+![admin.png](./docs/imgs/admin.png)
+
+可实时查看满足条件的日志
+![img.png](./docs/imgs/logs.png)
+
+点击快照可以在线查看快照
+![img.png](img.png)
+
 
 ## 3. HTTP 动态配置接口
 
