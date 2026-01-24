@@ -31,7 +31,7 @@
             <artifactId>byte-buddy-agent</artifactId>
             <version>${bytebuddy.version}</version>
         </dependency>
-        
+
         <!-- JUnit for testing -->
         <dependency>
             <groupId>junit</groupId>
@@ -39,12 +39,19 @@
             <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
-        
+
         <!-- Kryo for high-performance serialization -->
         <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo</artifactId>
             <version>5.5.0</version>
+        </dependency>
+
+        <!-- Java-WebSocket for real-time logging -->
+        <dependency>
+            <groupId>org.java-websocket</groupId>
+            <artifactId>Java-WebSocket</artifactId>
+            <version>1.5.4</version>
         </dependency>
     </dependencies>
 
@@ -75,6 +82,10 @@
                                     <pattern>org.objenesis</pattern>
                                     <shadedPattern>com.methodprobe.agent.shaded.objenesis</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.java_websocket</pattern>
+                                    <shadedPattern>com.methodprobe.agent.shaded.java_websocket</shadedPattern>
+                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
@@ -89,7 +100,7 @@
                     </execution>
                 </executions>
             </plugin>
-            
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

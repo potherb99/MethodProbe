@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>MethodProbe Log Monitor</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 20px;
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #1e1e1e;
+            border-bottom: 1px solid #333;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 16px;
+            color: #4a90d9;
+        }
+        #status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #333;
+            color: #888;
+        }
+        .connected { color: #28a745 !important; border: 1px solid #28a745; background: transparent !important; }
+        .disconnected { color: #dc3545 !important; border: 1px solid #dc3545; background: transparent !important; }
+        
+        #logs {
+            margin-top: 50px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .log-entry {
+            border-bottom: 1px solid #2d2d2d;
+            padding: 2px 0;
+        }
+        .log-entry:hover {
+            background-color: #2a2d2e;
+        }
+        
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #1e1e1e; }
+        ::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4f4f4f; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>MethodProbe 实时日志监控</h1>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="clearLogs()" style="background:none; border:1px solid #666; color:#888; cursor:pointer; font-family:inherit;">🚫 清屏</button>
+            <span id="status" class="disconnected">● 未连接</span>
+        </div>
+    </div>
+    <div id="logs"></div>
+
+    <script>
+        const logsDiv = document.getElementById('logs');
+        const statusSpan = document.getElementById('status');
+        let ws;
+        const maxLogs = 2000;
+
+        // Backend will replace {{WS_PORT}} with actual int value, or we assume httpPort+1
+        // If {{WS_PORT}} is not replaced (e.g. static open), fallback to trying location.port + 1 logic
+        let wsPortRaw = '{{WS_PORT}}';
+        let wsPort;
+        if (wsPortRaw.startsWith('{{')) {
+            // Not replaced
+             wsPort = parseInt(location.port) + 1;
+        } else {
+            wsPort = parseInt(wsPortRaw);
+        }
+
+        function connect() {
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const url = `${protocol}//${location.hostname}:${wsPort}`;
+            
+            console.log('Connecting to WS:', url);
+            statusSpan.textContent = `● 连接中 (${url})...`;
+            
+            try {
+                ws = new WebSocket(url);
+            } catch (e) {
+                console.error("WS init error", e);
+                return;
+            }
+
+            ws.onopen = () => {
+                statusSpan.textContent = `● 已连接 (Port ${wsPort})`;
+                statusSpan.className = 'connected';
+                log("System: Connected to Log Stream");
+            };
+
+            ws.onmessage = (event) => {
+                log(event.data);
+            };
+
+            ws.onclose = () => {
+                statusSpan.textContent = '● 已断开 (3秒后重连...)';
+                statusSpan.className = 'disconnected';
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (err) => {
+                console.error('WS Error', err);
+                ws.close();
+            };
+        }
+
+        function log(msg) {
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            
+            // Linkify [snap:...]
+            // Escape HTML first
+            let safeMsg = escapeHtml(msg);
+            safeMsg = safeMsg.replace(/\[snap:([\w-]+)\]/g, '<a href="/snapshot?id=$1" target="_blank" style="color:#4a90d9;text-decoration:none;border-bottom:1px dashed #4a90d9;">[snap:$1]</a>');
+            
+            div.innerHTML = safeMsg;
+            
+            // Check for scroll lock? (simple: always append)
+            const atBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 50;
+            
+            logsDiv.appendChild(div);
+            
+            // Prune old logs
+            if (logsDiv.children.length > maxLogs) {
+                logsDiv.removeChild(logsDiv.firstChild);
+            }
+
+            if (atBottom) {
+                window.scrollTo(0, document.body.scrollHeight);
+            }
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function clearLogs() {
+            logsDiv.innerHTML = '';
+        }
+
+        connect();
+    </script>
+</body>
+</html>
