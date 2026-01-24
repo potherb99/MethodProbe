@@ -31,6 +31,10 @@
                   <pattern>org.objenesis</pattern>
                   <shadedPattern>com.methodprobe.agent.shaded.objenesis</shadedPattern>
                 </relocation>
+                <relocation>
+                  <pattern>org.java_websocket</pattern>
+                  <shadedPattern>com.methodprobe.agent.shaded.java_websocket</shadedPattern>
+                </relocation>
               </relocations>
               <transformers>
                 <transformer>
