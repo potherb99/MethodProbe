@@ -237,10 +237,12 @@ java -cp agent.jar com.probe.agent.snapshot.SnapshotReader "./probe-snapshots/**
 ![admin.png](./docs/imgs/admin.png)
 
 可实时查看满足条件的日志
-![img.png](./docs/imgs/logs.png)
+
+![logs.png](./docs/imgs/logs.png)
 
 点击快照可以在线查看快照
-![img.png](img.png)
+
+![snapshot.png](./docs/imgs/snapshot.png)
 
 
 ## 3. HTTP 动态配置接口
