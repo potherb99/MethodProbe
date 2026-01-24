@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MethodProbe 管理控制台</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px 30px;
+            background: #f0f2f5;
+        }
+
+        h1 {
+            color: #1a1a2e;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 24px;
+        }
+
+        .row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .col {
+            flex: 1;
+            min-width: 350px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: -20px -20px 20px -20px;
+            padding: 16px 20px;
+            border-radius: 12px 12px 0 0;
+            color: #fff;
+        }
+
+        .card.flat .card-header {
+            background: linear-gradient(135deg, #4a90d9, #357abd);
+        }
+
+        .card.tree .card-header {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+        }
+
+        .card.snapshot .card-header {
+            background: linear-gradient(135deg, #6c757d, #545b62);
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        input,
+        select {
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #4a90d9;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            flex: 1;
+            min-width: 0;
+        }
+
+        button {
+            padding: 10px 18px;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-flat {
+            background: #4a90d9;
+        }
+
+        .btn-tree {
+            background: #28a745;
+        }
+
+        .btn-snap {
+            background: #6c757d;
+        }
+
+        .btn-exception {
+            background: #dc3545;
+        }
+
+        .btn-refresh {
+            background: #17a2b8;
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            padding: 4px 10px;
+            font-size: 12px;
+            margin-left: 6px;
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+            min-height: 32px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            background: #e9ecef;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            max-width: 100%;
+            word-break: break-all;
+        }
+
+        .tag .del {
+            margin-left: 8px;
+            color: #dc3545;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .tag .del:hover {
+            color: #a71d2a;
+        }
+
+        .section {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .section-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .status {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-on {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-off {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .config-label {
+            color: #666;
+        }
+
+        .config-value {
+            font-weight: 600;
+            color: #333;
+            word-break: break-all;
+            text-align: right;
+            max-width: 60%;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 14px 24px;
+            background: #28a745;
+            color: #fff;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        #toast.error {
+            background: #dc3545;
+        }
+
+        .trigger-row {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .trigger-row label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .trigger-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .trigger-badge {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .trigger-timeout {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .trigger-exception {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .empty-text {
+            color: #999;
+            font-style: italic;
+            font-size: 13px;
+        }
+
+        hr {
+            margin: 16px 0;
+            border: none;
+            border-top: 1px solid #eee;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+
+        .info-card .config-item {
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-card .config-item:last-child {
+            border-bottom: none;
+        }
+
+        .help-tip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            margin-left: 6px;
+            background: #e0e0e0;
+            color: #666;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: help;
+            position: relative;
+        }
+
+        .help-tip:hover {
+            background: #4a90d9;
+            color: #fff;
+        }
+
+        .help-tip:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            left: 50%;
+            bottom: 100%;
+            transform: translateX(-50%);
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: #333;
+            color: #fff;
+            font-size: 12px;
+            font-weight: normal;
+            border-radius: 6px;
+            z-index: 1000;
+            min-width: 200px;
+            max-width: 400px;
+            width: max-content;
+            white-space: normal;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .help-tip:hover::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 100%;
+            transform: translateX(-50%);
+            margin-bottom: 2px;
+            border: 6px solid transparent;
+            border-top-color: #333;
+        }
+
+        /* Section Header */
+        .section-header {
+            margin: 30px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .section-header h2 {
+            font-size: 20px;
+            color: #2c3e50;
+            margin: 0;
+            display: inline-block;
+        }
+
+        .section-desc {
+            color: #6c757d;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .dependency-hint {
+            display: inline-block;
+            background: #e9ecef;
+            color: #666;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>
+        <span>MethodProbe 管理控制台</span>
+        <div>
+            <a href="/log" target="_blank" style="text-decoration:none; background:#2c3e50; color:#fff; font-size:14px; padding:8px 16px; border-radius:6px; margin-right:10px; display:inline-block; vertical-align:middle;">📺 实时日志</a>
+            <button class="btn-refresh" onclick="loadConfig()">🔄 刷新配置</button>
+        </div>
+    </h1>
+
+    <!-- Section: Core Modes -->
+    <div class="section-header">
+        <h2>🚀 核心监控模式</h2>
+        <div class="section-desc">选择并配置主要的方法跟踪模式 (Flat / Tree)</div>
+    </div>
+
+    <div class="row">
+        <!-- Flat 模式 -->
+        <div class="col">
+            <div class="card flat">
+                <div class="card-header">
+                    <h3>📊 Flat 模式</h3>
+                    <span id="flatStatus"></span>
+                </div>
+
+                <div class="section">
+                    <div class="config-item"><span class="config-label">阈值<span class="help-tip"
+                                data-tip="方法执行时间超过此值(ms)时记录日志">?</span></span><span class="config-value"
+                            id="flatThresholdVal">-</span></div>
+                    <div class="config-item"><span class="config-label">触发<span class="help-tip"
+                                data-tip="当超时或异常发生时触发记录">?</span></span><span id="flatTriggerBadges">-</span></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">监控包<span class="help-tip" data-tip="包名前缀，该包下所有类的方法都会被监控">?</span></div>
+                    <div class="tag-list" id="flatPackageList"></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">监控类<span class="help-tip" data-tip="完整类名，该类的所有方法都会被监控">?</span></div>
+                    <div class="tag-list" id="flatClassList"></div>
+                </div>
+
+                <hr>
+
+                <div class="form-group">
+                    <label>添加类<span class="help-tip" data-tip="输入完整类名，如 com.example.MyClass">?</span></label>
+                    <div class="form-row">
+                        <input type="text" id="flatClass" placeholder="com.example.MyClass">
+                        <button class="btn-flat" onclick="flatClassAdd()">添加</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>添加包<span class="help-tip" data-tip="输入包名前缀，如 com.example">?</span></label>
+                    <div class="form-row">
+                        <input type="text" id="flatPackage" placeholder="com.example">
+                        <button class="btn-flat" onclick="flatPackageAdd()">添加</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="config-grid">
+                        <div>
+                            <label>阈值 (ms)<span class="help-tip" data-tip="方法执行时间超过此值时触发记录">?</span></label>
+                            <input type="number" id="flatThreshold" placeholder="100" min="0" style="width:100%;">
+                        </div>
+                        <div>
+                            <label>触发条件<span class="help-tip" data-tip="选择何时触发日志记录">?</span></label>
+                            <select id="flatTrigger" style="width:100%;">
+                                <option value="timeout">超时触发</option>
+                                <option value="exception">异常触发</option>
+                                <option value="both">超时+异常</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-flat" onclick="flatConfigSave()" style="width:100%;">💾 保存 Flat 配置</button>
+            </div>
+        </div>
+
+        <!-- Tree 模式 -->
+        <div class="col">
+            <div class="card tree">
+                <div class="card-header">
+                    <h3>🌳 Tree 模式</h3>
+                    <span id="treeStatus"></span>
+                </div>
+
+                <div class="section">
+                    <div class="config-item"><span class="config-label">阈值<span class="help-tip"
+                                data-tip="调用链执行时间超过此值(ms)时记录日志">?</span></span><span class="config-value"
+                            id="treeThresholdVal">-</span></div>
+                    <div class="config-item"><span class="config-label">触发<span class="help-tip"
+                                data-tip="当超时或异常发生时触发记录">?</span></span><span id="treeTriggerBadges">-</span></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">入口方法<span class="help-tip" data-tip="调用链的起始方法，从此开始跟踪">?</span></div>
+                    <div class="tag-list" id="treeEntryList"></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">监控包<span class="help-tip" data-tip="包名前缀，只跟踪该包下的方法调用">?</span></div>
+                    <div class="tag-list" id="treePackageList"></div>
+                </div>
+
+                <hr>
+
+                <div class="form-group">
+                    <label>添加入口方法<span class="help-tip"
+                            data-tip="格式: 类名.方法名，如 com.example.Controller.handle">?</span></label>
+                    <div class="form-row">
+                        <input type="text" id="treeEntry" placeholder="com.example.Controller.handle">
+                        <button class="btn-tree" onclick="treeEntryAdd()">添加</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>添加包<span class="help-tip" data-tip="包名前缀，只记录该包下的方法调用">?</span></label>
+                    <div class="form-row">
+                        <input type="text" id="treePackage" placeholder="com.example">
+                        <button class="btn-tree" onclick="treePackageAdd()">添加</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="config-grid">
+                        <div>
+                            <label>阈值 (ms)<span class="help-tip" data-tip="调用链执行时间超过此值时触发记录">?</span></label>
+                            <input type="number" id="treeThreshold" placeholder="100" min="0" style="width:100%;">
+                        </div>
+                        <div>
+                            <label>触发条件<span class="help-tip" data-tip="选择何时触发调用链记录">?</span></label>
+                            <select id="treeTrigger" style="width:100%;">
+                                <option value="timeout">超时触发</option>
+                                <option value="exception">异常触发</option>
+                                <option value="both">超时+异常</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-tree" onclick="treeConfigSave()" style="width:100%;">💾 保存 Tree 配置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Extensions -->
+    <div class="section-header">
+        <h2>🔌 扩展配置</h2>
+        <div class="section-desc">配合核心模式使用，提供更精细的控制 (Exception Filter / Snapshot)</div>
+    </div>
+
+    <!-- Row 2: Exception Filter + Snapshot -->
+    <div class="row">
+        <!-- 异常过滤器 -->
+        <div class="col">
+            <div class="card exception">
+                <div class="card-header" style="background: linear-gradient(135deg, #dc3545, #c82333);">
+                    <h3>⚠️ 异常过滤器<span class="dependency-hint">⬆ 依赖上方数据源</span></h3>
+                </div>
+
+                <div class="section">
+                    <div class="config-item"><span class="config-label">堆栈深度<span class="help-tip"
+                                data-tip="异常堆栈跟踪的最大层数">?</span></span><span class="config-value"
+                            id="exceptionDepthVal">-</span></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">包含异常 (空=全部)<span class="help-tip" data-tip="只记录这些类型的异常，空表示全部">?</span>
+                    </div>
+                    <div class="tag-list" id="exceptionIncludeList"></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">排除异常 (优先)<span class="help-tip" data-tip="这些类型的异常不会被记录">?</span></div>
+                    <div class="tag-list" id="exceptionExcludeList"></div>
+                </div>
+
+                <hr>
+
+                <div class="form-group">
+                    <label>添加包含异常<span class="help-tip"
+                            data-tip="异常类完整名称，如 java.lang.NullPointerException">?</span></label>
+                    <div class="form-row">
+                        <input type="text" id="exceptionInclude" placeholder="java.lang.NullPointerException">
+                        <button class="btn-exception" onclick="exceptionIncludeAdd()">添加</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>添加排除异常<span class="help-tip" data-tip="异常类完整名称，这些异常将被忽略">?</span></label>
+                    <div class="form-row">
+                        <input type="text" id="exceptionExclude" placeholder="java.lang.IllegalArgumentException">
+                        <button class="btn-exception" onclick="exceptionExcludeAdd()">添加</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>堆栈深度<span class="help-tip" data-tip="异常堆栈显示的最大层数">?</span></label>
+                    <div class="form-row">
+                        <input type="number" id="exceptionDepth" placeholder="10" min="1" max="100">
+                        <button class="btn-exception" onclick="exceptionDepthSet()">设置</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 快照配置 -->
+        <div class="col">
+            <div class="card snapshot">
+                <div class="card-header">
+                    <h3>📸 快照配置<span class="dependency-hint">⬆ 依赖上方数据源</span></h3>
+                    <span id="snapshotStatus"></span>
+                </div>
+
+                <div class="section">
+                    <div class="config-item"><span class="config-label">目录<span class="help-tip"
+                                data-tip="快照文件存储目录">?</span></span><span class="config-value"
+                            id="snapshotDirVal">-</span></div>
+                    <div class="config-item"><span class="config-label">序列化<span class="help-tip"
+                                data-tip="同步或异步序列化快照数据">?</span></span><span class="config-value"
+                            id="snapshotModeVal">-</span></div>
+                    <div class="config-item"><span class="config-label">最大对象<span class="help-tip"
+                                data-tip="单个对象序列化的最大大小限制">?</span></span><span class="config-value"
+                            id="snapshotMaxVal">-</span></div>
+                    <div class="config-item"><span class="config-label">保留天数<span class="help-tip"
+                                data-tip="快照文件保留天数，过期自动删除">?</span></span><span class="config-value"
+                            id="snapshotRetentionVal">-</span></div>
+                </div>
+
+                <hr>
+
+                <div class="form-group">
+                    <div class="config-grid">
+                        <div>
+                            <label>启用状态<span class="help-tip" data-tip="启用或禁用快照功能">?</span></label>
+                            <select id="snapshotEnabled" style="width:100%;">
+                                <option value="true">启用</option>
+                                <option value="false">禁用</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>序列化模式<span class="help-tip" data-tip="异步性能更好，同步保证一致性">?</span></label>
+                            <select id="snapshotMode" style="width:100%;">
+                                <option value="sync">同步</option>
+                                <option value="async">异步</option>
+                            </select>
+                        </div>
+                        </div>
+                        <!-- Snapshot Dir input removed as it is immutable -->
+                    </div>
+                </div>
+
+
+                <button class="btn-snap" onclick="snapshotSave()" style="width:100%;">保存快照配置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: System -->
+    <div class="section-header">
+        <h2>ℹ️ 系统状态</h2>
+        <div class="section-desc">当前代理运行状态与基本信息</div>
+    </div>
+
+    <!-- Row 3: System Info -->
+    <div class="row">
+        <div class="col">
+            <div class="card info-card">
+                <div class="section-title" style="margin-bottom: 12px;">📋 系统信息</div>
+                <div class="config-item"><span class="config-label">HTTP 端口<span class="help-tip"
+                            data-tip="管理接口的HTTP端口">?</span></span><span class="config-value" id="httpPort">-</span>
+                </div>
+                <div class="config-item"><span class="config-label">输出模式<span class="help-tip"
+                            data-tip="日志输出方式: console/file/both">?</span></span><span class="config-value"
+                        id="outputMode">-</span></div>
+                <div class="config-item"><span class="config-label">输出目录<span class="help-tip"
+                            data-tip="日志文件存储目录">?</span></span><span class="config-value" id="outputDir">-</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        function showToast(msg, isError) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = isError ? 'error' : '';
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
+        }
+
+        function statusBadge(enabled) {
+            return `<span class="status ${enabled ? 'status-on' : 'status-off'}">${enabled ? '启用' : '禁用'}</span>`;
+        }
+
+        function triggerBadge(trigger) {
+            const map = {
+                'timeout': '<span class="trigger-badge trigger-timeout">超时</span>',
+                'exception': '<span class="trigger-badge trigger-exception">异常</span>',
+                'both': '<span class="trigger-badge trigger-timeout">超时</span> <span class="trigger-badge trigger-exception">异常</span>'
+            };
+            return map[trigger] || '<span class="empty-text">无</span>';
+        }
+
+        function tagWithDelete(text, deleteCallback) {
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.innerHTML = `${text}<span class="del" title="删除">×</span>`;
+            tag.querySelector('.del').onclick = deleteCallback;
+            return tag;
+        }
+
+        function renderTags(container, items, deleteUrl, paramName) {
+            container.innerHTML = '';
+            if (!items || items.length === 0) {
+                container.innerHTML = '<span class="empty-text">无</span>';
+                return;
+            }
+            items.forEach(item => {
+                container.appendChild(tagWithDelete(item, () => deleteItem(deleteUrl, paramName, item)));
+            });
+        }
+
+        async function deleteItem(url, paramName, value) {
+            if (!confirm(`确认删除 "${value}"?`)) return;
+            await post(url, `${paramName}=${encodeURIComponent(value)}`);
+        }
+
+        async function loadConfig() {
+            try {
+                const res = await fetch('/config');
+                const cfg = await res.json();
+                displayConfig(cfg);
+            } catch (e) {
+                showToast('加载失败: ' + e.message, true);
+            }
+        }
+
+        function displayConfig(cfg) {
+            // Flat
+            document.getElementById('flatStatus').innerHTML = statusBadge(cfg.flat.enabled);
+            document.getElementById('flatThresholdVal').textContent = cfg.flat.thresholdMs + ' ms';
+            document.getElementById('flatThreshold').value = cfg.flat.thresholdMs;
+            document.getElementById('flatTriggerBadges').innerHTML = triggerBadge(cfg.flat.trigger);
+            document.getElementById('flatTrigger').value = cfg.flat.trigger;
+            renderTags(document.getElementById('flatPackageList'), cfg.flat.packages, '/flat/package/remove', 'packageName');
+            renderTags(document.getElementById('flatClassList'), cfg.flat.classes, '/flat/class/remove', 'className');
+
+            // Tree
+            document.getElementById('treeStatus').innerHTML = statusBadge(cfg.tree.enabled);
+            document.getElementById('treeThresholdVal').textContent = cfg.tree.thresholdMs + ' ms';
+            document.getElementById('treeThreshold').value = cfg.tree.thresholdMs;
+            document.getElementById('treeTriggerBadges').innerHTML = triggerBadge(cfg.tree.trigger);
+            document.getElementById('treeTrigger').value = cfg.tree.trigger;
+            renderTags(document.getElementById('treeEntryList'), cfg.tree.entryMethods, '/tree/entry/remove', 'method');
+            renderTags(document.getElementById('treePackageList'), cfg.tree.packages, '/tree/package/remove', 'packageName');
+
+            // Snapshot
+            document.getElementById('snapshotStatus').innerHTML = statusBadge(cfg.snapshot.enabled);
+            document.getElementById('snapshotDirVal').textContent = cfg.snapshot.dir;
+            document.getElementById('snapshotModeVal').textContent = cfg.snapshot.serializeSync ? '同步' : '异步';
+            document.getElementById('snapshotMaxVal').textContent = (cfg.snapshot.maxObjectSize / 1024 / 1024).toFixed(1) + ' MB';
+            document.getElementById('snapshotRetentionVal').textContent = cfg.snapshot.retentionDays + ' 天';
+            document.getElementById('snapshotEnabled').value = cfg.snapshot.enabled ? 'true' : 'false';
+            document.getElementById('snapshotMode').value = cfg.snapshot.serializeSync ? 'sync' : 'async';
+
+            // General
+            document.getElementById('httpPort').textContent = cfg.general.httpPort;
+            document.getElementById('outputMode').textContent = cfg.output.mode;
+            document.getElementById('outputDir').textContent = cfg.output.dir;
+
+            // Exception
+            document.getElementById('exceptionDepthVal').textContent = cfg.exception.stackDepth;
+            renderTags(document.getElementById('exceptionIncludeList'),
+                Array.from(cfg.exception.include || []), '/exception/include/remove', 'pattern');
+            renderTags(document.getElementById('exceptionExcludeList'),
+                Array.from(cfg.exception.exclude || []), '/exception/exclude/remove', 'pattern');
+        }
+
+        async function post(url, body, skipReload) {
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body
+                });
+                const r = await res.json();
+                if (r.success) { 
+                    if (!skipReload) {
+                        showToast('操作成功'); 
+                        loadConfig(); 
+                    }
+                    return true; 
+                }
+                else { 
+                    if (!skipReload) showToast(r.error || '操作失败', true); 
+                    return false; 
+                }
+            } catch (e) { 
+                if (!skipReload) showToast('请求失败', true); 
+                return false; 
+            }
+        }
+
+        // Flat
+        async function flatClassAdd() {
+            const v = document.getElementById('flatClass').value.trim();
+            if (!v) { showToast('请输入类名', true); return; }
+            if (await post('/flat/class/add', 'className=' + encodeURIComponent(v)))
+                document.getElementById('flatClass').value = '';
+        }
+        async function flatPackageAdd() {
+            const v = document.getElementById('flatPackage').value.trim();
+            if (!v) { showToast('请输入包名', true); return; }
+            if (await post('/flat/package/add', 'packageName=' + encodeURIComponent(v)))
+                document.getElementById('flatPackage').value = '';
+        }
+        async function flatConfigSave() {
+            const threshold = document.getElementById('flatThreshold').value.trim();
+            const trigger = document.getElementById('flatTrigger').value;
+
+            let success = true;
+            // 批量更新
+            if (threshold) {
+                if (!await post('/flat/threshold', 'threshold=' + encodeURIComponent(threshold), true)) {
+                    success = false;
+                }
+            }
+            if (!await post('/flat/trigger', 'trigger=' + trigger, true)) {
+                success = false;
+            }
+
+            if (success) {
+                showToast('Flat 配置已保存');
+                loadConfig();
+            } else {
+                showToast('部分配置保存失败', true);
+            }
+        }
+
+        // Tree
+        async function treeEntryAdd() {
+            const v = document.getElementById('treeEntry').value.trim();
+            if (!v) { showToast('请输入入口方法', true); return; }
+            if (await post('/tree/entry/add', 'method=' + encodeURIComponent(v)))
+                document.getElementById('treeEntry').value = '';
+        }
+        async function treePackageAdd() {
+            const v = document.getElementById('treePackage').value.trim();
+            if (!v) { showToast('请输入包名', true); return; }
+            if (await post('/tree/package/add', 'packageName=' + encodeURIComponent(v)))
+                document.getElementById('treePackage').value = '';
+        }
+        async function treeConfigSave() {
+            const threshold = document.getElementById('treeThreshold').value.trim();
+            const trigger = document.getElementById('treeTrigger').value;
+
+            let success = true;
+            if (threshold) {
+                if (!await post('/tree/threshold', 'threshold=' + encodeURIComponent(threshold), true)) {
+                    success = false;
+                }
+            }
+            if (!await post('/tree/trigger', 'trigger=' + trigger, true)) {
+                success = false;
+            }
+
+            if (success) {
+                showToast('Tree 配置已保存');
+                loadConfig();
+            } else {
+                showToast('部分配置保存失败', true);
+            }
+        }
+
+        // Snapshot
+        async function snapshotSave() {
+            const params = new URLSearchParams();
+            params.append('enabled', document.getElementById('snapshotEnabled').value);
+            params.append('mode', document.getElementById('snapshotMode').value);
+            // dir is immutable
+            await post('/snapshot/config', params.toString());
+        }
+
+        // Exception
+        async function exceptionIncludeAdd() {
+            const v = document.getElementById('exceptionInclude').value.trim();
+            if (!v) { showToast('请输入异常类型', true); return; }
+            if (await post('/exception/include/add', 'pattern=' + encodeURIComponent(v)))
+                document.getElementById('exceptionInclude').value = '';
+        }
+        async function exceptionExcludeAdd() {
+            const v = document.getElementById('exceptionExclude').value.trim();
+            if (!v) { showToast('请输入异常类型', true); return; }
+            if (await post('/exception/exclude/add', 'pattern=' + encodeURIComponent(v)))
+                document.getElementById('exceptionExclude').value = '';
+        }
+        async function exceptionDepthSet() {
+            const v = document.getElementById('exceptionDepth').value.trim();
+            if (!v) { showToast('请输入堆栈深度', true); return; }
+            if (await post('/exception/depth', 'depth=' + encodeURIComponent(v)))
+                document.getElementById('exceptionDepth').value = '';
+        }
+
+        loadConfig();
+    </script>
+</body>
+
+</html>

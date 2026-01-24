@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Snapshot Detail</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 30px;
+            margin: 0;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4a90d9;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .section {
+            background: #252526;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .section-title {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .field {
+            margin-bottom: 10px;
+        }
+        .label {
+            color: #6a9955;
+            font-weight: 500;
+            margin-right: 10px;
+            display: inline-block;
+            min-width: 80px;
+        }
+        .value {
+            color: #ce9178;
+            font-family: 'Consolas', monospace;
+        }
+        .value.highlight {
+            color: #dcdcaa;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #333;
+        }
+        th {
+            color: #888;
+            font-weight: normal;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .type-col {
+            color: #4ec9b0;
+            font-family: 'Consolas', monospace;
+            width: 30%;
+        }
+        .val-col {
+            color: #ce9178;
+            font-family: 'Consolas', monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .exception-block {
+            background: #2d1e1e;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+        }
+        .stack-trace {
+            color: #9cdcfe;
+            font-family: 'Consolas', monospace;
+            white-space: pre;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        
+        #loading {
+            text-align: center;
+            color: #888;
+            margin-top: 50px;
+        }
+        .error {
+            color: #f44336;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Method Snapshot</h1>
+        <div id="loading">Loading snapshot data...</div>
+        <div id="error" class="error" style="display:none"></div>
+        
+        <div id="content" style="display:none">
+            <!-- Header Info -->
+            <div class="section">
+                <div class="section-title">Execution Context</div>
+                <div class="grid">
+                    <div>
+                        <div class="field"><span class="label">ID:</span><span class="value" id="snapId"></span></div>
+                        <div class="field"><span class="label">Time:</span><span class="value" id="snapTime"></span></div>
+                        <div class="field"><span class="label">Thread:</span><span class="value" id="snapThread"></span></div>
+                    </div>
+                    <div>
+                        <div class="field"><span class="label">Class:</span><span class="value highlight" id="snapClass"></span></div>
+                        <div class="field"><span class="label">Method:</span><span class="value highlight" id="snapMethod"></span></div>
+                        <div class="field"><span class="label">Duration:</span><span class="value" id="snapDuration" style="color:#b5cea8"></span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Exception (if any) -->
+            <div id="exceptionSection" class="section" style="display:none">
+                <div class="section-title" style="color:#f44336">Exception</div>
+                <div class="exception-block">
+                    <div class="field"><span class="label">Type:</span><span class="value" id="exType" style="color:#f44336"></span></div>
+                    <div class="field"><span class="label">Message:</span><span class="value" id="exMsg"></span></div>
+                    <div style="margin-top:10px; color:#888; font-size:12px;">Stack Trace:</div>
+                    <div class="stack-trace" id="exStack"></div>
+                </div>
+            </div>
+
+            <!-- Arguments -->
+            <div class="section">
+                <div class="section-title">Method Arguments</div>
+                <table id="argsTable">
+                    <thead>
+                        <tr>
+                            <th>Index</th>
+                            <th>Type</th>
+                            <th>Value (toString)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get ID from URL
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+
+        if (!id) {
+            showError('No snapshot ID provided');
+        } else {
+            fetchSnapshot(id);
+        }
+
+        async function fetchSnapshot(id) {
+            try {
+                const res = await fetch('/snapshot/detail?id=' + encodeURIComponent(id));
+                if (!res.ok) throw new Error(await res.text() || 'Failed to fetch data');
+                
+                const data = await res.json();
+                render(data);
+            } catch (e) {
+                showError(e.message);
+            }
+        }
+
+        function render(data) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+            
+            // Basics
+            document.getElementById('snapId').textContent = data.id || '-';
+            document.getElementById('snapTime').textContent = data.time || '-';
+            document.getElementById('snapThread').textContent = data.thread || '-';
+            document.getElementById('snapClass').textContent = data.className || '-';
+            document.getElementById('snapMethod').textContent = data.methodName || '-';
+            document.getElementById('snapDuration').textContent = (data.duration || 0) + ' ms';
+            
+            // Exception
+            if (data.exception) {
+                document.getElementById('exceptionSection').style.display = 'block';
+                document.getElementById('exType').textContent = data.exception.class || 'Unknown';
+                document.getElementById('exMsg').textContent = data.exception.message || '';
+                document.getElementById('exStack').textContent = data.exception.stack || '';
+            }
+            
+            // Args
+            const tbody = document.querySelector('#argsTable tbody');
+            if (data.args && data.args.length > 0) {
+                data.args.forEach((arg, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="color:#888">#${idx}</td>
+                        <td class="type-col">${escapeHtml(arg.type)}</td>
+                        <td class="val-col">${escapeHtml(arg.value)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#666">No arguments or empty</td></tr>';
+            }
+        }
+        
+        function showError(msg) {
+            document.getElementById('loading').style.display = 'none';
+            const errDiv = document.getElementById('error');
+            errDiv.style.display = 'block';
+            errDiv.textContent = 'Error: ' + msg;
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
